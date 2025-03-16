@@ -7,13 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trash2, Download, Sparkles } from "lucide-react";
 import ProbabilityChart from "@/components/probability-chart";
+import { initOnnxSession, predictDigit } from "@/app/predict";
 
 export default function DigitRecognizer() {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const [isDrawing, setIsDrawing] = useState(false);
 	const [prediction, setPrediction] = useState<number | null>(null);
 	const [probabilities, setProbabilities] = useState<number[]>([]);
-	const [isLoading, setIsLoading] = useState(false);
+	const [isLoading, setIsLoading] = useState(true);
+	const [isAnalysing, setIsAnalysing] = useState(true);
 	const [hasDrawn, setHasDrawn] = useState(false);
 
 	// Initialize canvas
@@ -23,7 +25,7 @@ export default function DigitRecognizer() {
 			const ctx = canvas.getContext("2d");
 			if (ctx) {
 				// Set black background
-				ctx.fillStyle = "#111111";
+				ctx.fillStyle = "#000";
 				ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 				// Set white drawing
@@ -33,6 +35,15 @@ export default function DigitRecognizer() {
 				ctx.strokeStyle = "white";
 			}
 		}
+
+		// Initialize ONNX session when component mounts
+		initOnnxSession()
+			.catch(console.error)
+			.finally(() => {
+				setIsLoading(false);
+				setIsAnalysing(false);
+			});
+
 	}, []);
 
 	// Drawing functions
@@ -49,17 +60,25 @@ export default function DigitRecognizer() {
 		if (!ctx) return;
 
 		const rect = canvas.getBoundingClientRect();
-		let x, y;
+		let clientX, clientY;
 
 		if ("touches" in e) {
 			// Touch event
-			x = e.touches[0].clientX - rect.left;
-			y = e.touches[0].clientY - rect.top;
+			clientX = e.touches[0].clientX;
+			clientY = e.touches[0].clientY;
 		} else {
 			// Mouse event
-			x = e.clientX - rect.left;
-			y = e.clientY - rect.top;
+			clientX = e.clientX;
+			clientY = e.clientY;
 		}
+
+		// Calculate the scaling factors between canvas dimensions and display dimensions
+		const scaleX = canvas.width / rect.width;
+		const scaleY = canvas.height / rect.height;
+
+		// Apply scaling to get the correct canvas coordinates
+		const x = (clientX - rect.left) * scaleX;
+		const y = (clientY - rect.top) * scaleY;
 
 		ctx.beginPath();
 		ctx.moveTo(x, y);
@@ -77,26 +96,36 @@ export default function DigitRecognizer() {
 		if (!ctx) return;
 
 		const rect = canvas.getBoundingClientRect();
-		let x, y;
+		let clientX, clientY;
 
 		if ("touches" in e) {
 			// Touch event
-			x = e.touches[0].clientX - rect.left;
-			y = e.touches[0].clientY - rect.top;
+			clientX = e.touches[0].clientX;
+			clientY = e.touches[0].clientY;
 		} else {
 			// Mouse event
-			x = e.clientX - rect.left;
-			y = e.clientY - rect.top;
+			clientX = e.clientX;
+			clientY = e.clientY;
 		}
 
+		// Calculate the scaling factors between canvas dimensions and display dimensions
+		const scaleX = canvas.width / rect.width;
+		const scaleY = canvas.height / rect.height;
+
+		// Apply scaling to get the correct canvas coordinates
+		const x = (clientX - rect.left) * scaleX;
+		const y = (clientY - rect.top) * scaleY;
+
 		ctx.lineTo(x, y);
+		// make the stroke size double
+		ctx.lineWidth = 30;
 		ctx.stroke();
 	};
 
 	const endDrawing = () => {
 		setIsDrawing(false);
 		if (hasDrawn) {
-			predictDigit();
+			makePrediction();
 		}
 	};
 
@@ -109,7 +138,7 @@ export default function DigitRecognizer() {
 		if (!ctx) return;
 
 		// Reset to black background
-		ctx.fillStyle = "#111111";
+		ctx.fillStyle = "#000";
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 		setPrediction(null);
@@ -129,37 +158,22 @@ export default function DigitRecognizer() {
 		link.click();
 	};
 
-	// Hardcoded prediction for testing
-	const predictDigit = async () => {
-		setIsLoading(true);
+	const makePrediction = async () => {
+		setIsAnalysing(true);
 
-		// Simulate API delay
-		setTimeout(() => {
-			// Generate a random digit (0-9)
-			const randomDigit = Math.floor(Math.random() * 10);
+		const canvas = canvasRef.current;
+		if (!canvas) return;
 
-			// Generate random probabilities for other digits (small values)
-			let remainingProb = 1; // 100% total
-			const randomProbs = Array(10).fill(0);
+		try {
+			const { prediction, probs } = await predictDigit(canvas);
 
-			for (let i = 0; i < 10; i++) {
-				if (i !== randomDigit) {
-					randomProbs[i] = Math.random() * 0.1; // Small probability for non-selected digits
-					remainingProb -= randomProbs[i];
-				}
-			}
-
-			// Assign a high probability to the chosen digit (at least 50%)
-			randomProbs[randomDigit] = remainingProb;
-
-			// Normalize to ensure exact 100% sum (in case of floating point precision issues)
-			const sum = randomProbs.reduce((a, b) => a + b, 0);
-			const normalizedProbs = randomProbs.map((p) => p / sum);
-
-			setPrediction(randomDigit);
-			setProbabilities(normalizedProbs);
-			setIsLoading(false);
-		}, 800); // Simulate 800ms delay
+			setPrediction(prediction);
+			setProbabilities(probs);
+		} catch (error) {
+			console.error("Prediction failed:", error);
+		} finally {
+			setIsAnalysing(false);
+		}
 	};
 
 	return (
@@ -193,8 +207,8 @@ export default function DigitRecognizer() {
 					<div className="relative rounded-lg border border-neutral-700 overflow-hidden">
 						<canvas
 							ref={canvasRef}
-							width={560}
-							height={360}
+							width={420}
+							height={420}
 							className="touch-none w-full h-auto cursor-crosshair"
 							onMouseDown={startDrawing}
 							onMouseMove={draw}
@@ -204,15 +218,17 @@ export default function DigitRecognizer() {
 							onTouchMove={draw}
 							onTouchEnd={endDrawing}
 						/>
-						{isLoading && (
+						{isAnalysing && (
 							<div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
 								<div className="flex flex-col items-center">
 									<div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-cyan-500 mb-3"></div>
-									<p className="text-cyan-400 font-medium">Analyzing...</p>
+									<p className="text-cyan-400 font-medium">
+										{isLoading ? "Loading..." : "Analyzing..." }
+									</p>
 								</div>
 							</div>
 						)}
-						{!hasDrawn && !isLoading && (
+						{!hasDrawn && !isAnalysing && (
 							<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
 								<p className="text-neutral-500 font-medium">
 									Draw a digit here
