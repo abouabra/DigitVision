@@ -1,276 +1,351 @@
-"use client";
+"use client"
 
-import type React from "react";
+import type React from "react"
 
-import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Trash2, Download, Sparkles } from "lucide-react";
-import ProbabilityChart from "@/components/probability-chart";
-import { initOnnxSession, predictDigit } from "@/app/predict";
+import { useEffect, useRef, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Trash2, Sparkles, PenLine, X, Maximize2, Minimize2 } from "lucide-react"
+import ProbabilityChart from "@/components/probability-chart"
+import { initOnnxSession, predictDigit } from "@/app/predict"
+import ActivationVisualizer from "@/components/activation-visualizer"
+import { Slider } from "@/components/ui/slider"
 
 export default function DigitRecognizer() {
-	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const [isDrawing, setIsDrawing] = useState(false);
-	const [prediction, setPrediction] = useState<number | null>(null);
-	const [probabilities, setProbabilities] = useState<number[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
-	const [isAnalysing, setIsAnalysing] = useState(true);
-	const [hasDrawn, setHasDrawn] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [prediction, setPrediction] = useState<number | null>(null)
+  const [probabilities, setProbabilities] = useState<number[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAnalysing, setIsAnalysing] = useState(true)
+  const [hasDrawn, setHasDrawn] = useState(false)
+  const [activations, setActivations] = useState<Record<string, { data: Float32Array; dims: number[] }> | null>(null)
+  const [modalImage, setModalImage] = useState<{ src: string; title: string } | null>(null)
+  const [zoomLevel, setZoomLevel] = useState(1)
 
-	// Initialize canvas
-	useEffect(() => {
-		if (canvasRef.current) {
-			const canvas = canvasRef.current;
-			const ctx = canvas.getContext("2d");
-			if (ctx) {
-				// Set black background
-				ctx.fillStyle = "#000";
-				ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Initialize canvas
+  useEffect(() => {
+    if (canvasRef.current) {
+      const canvas = canvasRef.current
+      const ctx = canvas.getContext("2d")
+      if (ctx) {
+        // Set black background
+        ctx.fillStyle = "#000"
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-				// Set white drawing
-				ctx.lineWidth = 15;
-				ctx.lineCap = "round";
-				ctx.lineJoin = "round";
-				ctx.strokeStyle = "white";
-			}
-		}
+        // Set white drawing
+        ctx.lineWidth = 15
+        ctx.lineCap = "round"
+        ctx.lineJoin = "round"
+        ctx.strokeStyle = "white"
+      }
+    }
 
-		// Initialize ONNX session when component mounts
-		initOnnxSession()
-			.catch(console.error)
-			.finally(() => {
-				setIsLoading(false);
-				setIsAnalysing(false);
-			});
+    // Initialize ONNX session when component mounts
+    initOnnxSession()
+      .catch(console.error)
+      .finally(() => {
+        setIsLoading(false)
+        setIsAnalysing(false)
+      })
 
-	}, []);
+    // Add event listener for modal
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modalImage && e.target instanceof HTMLElement) {
+        // Check if the click is on the modal background (not on the modal content)
+        if (e.target.classList.contains("modal-background")) {
+          setModalImage(null)
+        }
+      }
+    }
 
-	// Drawing functions
-	const startDrawing = (
-		e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
-	) => {
-		setIsDrawing(true);
-		setHasDrawn(true);
+    document.addEventListener("mousedown", handleClickOutside)
 
-		const canvas = canvasRef.current;
-		if (!canvas) return;
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [modalImage])
 
-		const ctx = canvas.getContext("2d");
-		if (!ctx) return;
+  // Drawing functions
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    setIsDrawing(true)
+    setHasDrawn(true)
 
-		const rect = canvas.getBoundingClientRect();
-		let clientX, clientY;
+    const canvas = canvasRef.current
+    if (!canvas) return
 
-		if ("touches" in e) {
-			// Touch event
-			clientX = e.touches[0].clientX;
-			clientY = e.touches[0].clientY;
-		} else {
-			// Mouse event
-			clientX = e.clientX;
-			clientY = e.clientY;
-		}
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
 
-		// Calculate the scaling factors between canvas dimensions and display dimensions
-		const scaleX = canvas.width / rect.width;
-		const scaleY = canvas.height / rect.height;
+    const rect = canvas.getBoundingClientRect()
+    let clientX, clientY
 
-		// Apply scaling to get the correct canvas coordinates
-		const x = (clientX - rect.left) * scaleX;
-		const y = (clientY - rect.top) * scaleY;
+    if ("touches" in e) {
+      // Touch event
+      clientX = e.touches[0].clientX
+      clientY = e.touches[0].clientY
+    } else {
+      // Mouse event
+      clientX = e.clientX
+      clientY = e.clientY
+    }
 
-		ctx.beginPath();
-		ctx.moveTo(x, y);
-	};
+    // Calculate the scaling factors between canvas dimensions and display dimensions
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
 
-	const draw = (
-		e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
-	) => {
-		if (!isDrawing) return;
+    // Apply scaling to get the correct canvas coordinates
+    const x = (clientX - rect.left) * scaleX
+    const y = (clientY - rect.top) * scaleY
 
-		const canvas = canvasRef.current;
-		if (!canvas) return;
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+  }
 
-		const ctx = canvas.getContext("2d");
-		if (!ctx) return;
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return
 
-		const rect = canvas.getBoundingClientRect();
-		let clientX, clientY;
+    const canvas = canvasRef.current
+    if (!canvas) return
 
-		if ("touches" in e) {
-			// Touch event
-			clientX = e.touches[0].clientX;
-			clientY = e.touches[0].clientY;
-		} else {
-			// Mouse event
-			clientX = e.clientX;
-			clientY = e.clientY;
-		}
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
 
-		// Calculate the scaling factors between canvas dimensions and display dimensions
-		const scaleX = canvas.width / rect.width;
-		const scaleY = canvas.height / rect.height;
+    const rect = canvas.getBoundingClientRect()
+    let clientX, clientY
 
-		// Apply scaling to get the correct canvas coordinates
-		const x = (clientX - rect.left) * scaleX;
-		const y = (clientY - rect.top) * scaleY;
+    if ("touches" in e) {
+      // Touch event
+      clientX = e.touches[0].clientX
+      clientY = e.touches[0].clientY
+    } else {
+      // Mouse event
+      clientX = e.clientX
+      clientY = e.clientY
+    }
 
-		ctx.lineTo(x, y);
-		// make the stroke size double
-		ctx.lineWidth = 30;
-		ctx.stroke();
-	};
+    // Calculate the scaling factors between canvas dimensions and display dimensions
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
 
-	const endDrawing = () => {
-		setIsDrawing(false);
-		if (hasDrawn) {
-			makePrediction();
-		}
-	};
+    // Apply scaling to get the correct canvas coordinates
+    const x = (clientX - rect.left) * scaleX
+    const y = (clientY - rect.top) * scaleY
 
-	// Clear canvas
-	const clearCanvas = () => {
-		const canvas = canvasRef.current;
-		if (!canvas) return;
+    ctx.lineTo(x, y)
+    // make the stroke size double
+    ctx.lineWidth = 30
+    ctx.stroke()
+  }
 
-		const ctx = canvas.getContext("2d");
-		if (!ctx) return;
+  const endDrawing = () => {
+    setIsDrawing(false)
+    if (hasDrawn) {
+      makePrediction()
+    }
+  }
 
-		// Reset to black background
-		ctx.fillStyle = "#000";
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Clear canvas
+  const clearCanvas = () => {
+    const canvas = canvasRef.current
+    if (!canvas) return
 
-		setPrediction(null);
-		setProbabilities([]);
-		setHasDrawn(false);
-	};
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
 
-	// Save canvas as image
-	const saveCanvas = () => {
-		const canvas = canvasRef.current;
-		if (!canvas) return;
+    // Reset to black background
+    ctx.fillStyle = "#000"
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-		const dataURL = canvas.toDataURL("image/png");
-		const link = document.createElement("a");
-		link.download = "digit-drawing.png";
-		link.href = dataURL;
-		link.click();
-	};
+    setPrediction(null)
+    setProbabilities([])
+    setActivations(null)
+    setHasDrawn(false)
+  }
 
-	const makePrediction = async () => {
-		setIsAnalysing(true);
+  const makePrediction = async () => {
+    setIsAnalysing(true)
 
-		const canvas = canvasRef.current;
-		if (!canvas) return;
+    const canvas = canvasRef.current
+    if (!canvas) return
 
-		try {
-			const { prediction, probs } = await predictDigit(canvas);
+    try {
+      const result = await predictDigit(canvas)
 
-			setPrediction(prediction);
-			setProbabilities(probs);
-		} catch (error) {
-			console.error("Prediction failed:", error);
-		} finally {
-			setIsAnalysing(false);
-		}
-	};
+      setPrediction(result.prediction)
+      setProbabilities(result.probs)
+      setActivations(result.activations)
+    } catch (error) {
+      console.error("Prediction failed:", error)
+    } finally {
+      setIsAnalysing(false)
+    }
+  }
 
-	return (
-		<div className="grid grid-cols-1 lg:grid-cols-5 gap-6 min-h-[700px]">
-			<Card className="overflow-hidden border-neutral-800 bg-neutral-900/60 backdrop-blur-sm lg:col-span-3">
-				<CardContent className="p-6">
-					<div className="flex justify-between items-center mb-4">
-						<h2 className="text-xl font-semibold text-white">
-							Draw a digit (0-9)
-						</h2>
-						<div className="flex gap-2">
-							<Button
-								variant="outline"
-								size="icon"
-								onClick={saveCanvas}
-								disabled={!hasDrawn}
-								className="border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-200"
-								aria-label="Save drawing">
-								<Download className="h-4 w-4" />
-							</Button>
-							<Button
-								variant="outline"
-								size="icon"
-								onClick={clearCanvas}
-								className="border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-200"
-								aria-label="Clear canvas">
-								<Trash2 className="h-4 w-4" />
-							</Button>
-						</div>
-					</div>
-					<div className="relative rounded-lg border border-neutral-700 overflow-hidden">
-						<canvas
-							ref={canvasRef}
-							width={420}
-							height={420}
-							className="touch-none w-full h-auto cursor-crosshair"
-							onMouseDown={startDrawing}
-							onMouseMove={draw}
-							onMouseUp={endDrawing}
-							//onMouseLeave={endDrawing}
-							onTouchStart={startDrawing}
-							onTouchMove={draw}
-							onTouchEnd={endDrawing}
-						/>
-						{isAnalysing && (
-							<div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-								<div className="flex flex-col items-center">
-									<div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-cyan-500 mb-3"></div>
-									<p className="text-cyan-400 font-medium">
-										{isLoading ? "Loading..." : "Analyzing..." }
-									</p>
-								</div>
-							</div>
-						)}
-						{!hasDrawn && !isAnalysing && (
-							<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-								<p className="text-neutral-500 font-medium">
-									Draw a digit here
-								</p>
-							</div>
-						)}
-					</div>
-					<div className="mt-4 text-sm text-neutral-400">
-						Use your mouse or finger to draw a single digit (0-9) in the canvas
-						above
-					</div>
-				</CardContent>
-			</Card>
+  // Event handler for activation images
+  const handleActivationClick = (src: string, title: string) => {
+    setModalImage({ src, title })
+    setZoomLevel(1) // Reset zoom level
+  }
 
-			<Card className="border-neutral-800 bg-neutral-900/60 backdrop-blur-sm lg:col-span-2">
-				<CardContent className="p-6">
-					<div className="flex items-center gap-2 mb-4">
-						<Sparkles className="h-5 w-5 text-cyan-500" />
-						<h2 className="text-xl font-semibold text-white">AI Prediction</h2>
-					</div>
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <Card className="overflow-hidden border-neutral-800 bg-neutral-900/60 backdrop-blur-sm lg:col-span-3">
+          <CardHeader className="px-4 py-4 border-b border-neutral-800 flex flex-row items-center justify-between">
+            <CardTitle className="text-xl font-semibold">
+              <div className="flex items-center">
+                <PenLine className="h-5 w-5 mr-2 text-cyan-500" />
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600">
+                  Draw a Digit
+                </span>
+              </div>
+            </CardTitle>
+            <div className="text-sm text-neutral-400">Draw a single digit (0-9) on the canvas</div>
+          </CardHeader>
+          <CardContent className="p-4 pt-4">
+            <div className="relative rounded-lg border border-neutral-700 overflow-hidden">
+              <canvas
+                ref={canvasRef}
+                width={420}
+                height={420}
+                className="touch-none w-full h-auto cursor-crosshair"
+                onMouseDown={startDrawing}
+                onMouseMove={draw}
+                onMouseUp={endDrawing}
+                onTouchStart={startDrawing}
+                onTouchMove={draw}
+                onTouchEnd={endDrawing}
+              />
+              {isAnalysing && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                  <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-cyan-500 mb-3"></div>
+                    <p className="text-cyan-400 font-medium">{isLoading ? "Loading model..." : "Analyzing..."}</p>
+                  </div>
+                </div>
+              )}
+              {!hasDrawn && !isAnalysing && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <p className="text-neutral-500 font-medium">Draw a digit here</p>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end mt-4">
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={clearCanvas}
+                className="border-neutral-700 bg-neutral-800 hover:bg-red-900/70 text-neutral-200 cursor-pointer transition-colors duration-200"
+                aria-label="Clear canvas"
+              >
+                <Trash2 className="h-5 w-5 mr-2" />
+                Clear
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
-					{prediction !== null ? (
-						<div className="space-y-6">
-							<div className="flex items-center justify-center py-6">
-								<div className="text-8xl md:text-9xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600">
-									{prediction}
-								</div>
-							</div>
-							<div>
-								<h3 className="text-sm font-medium mb-3 text-neutral-300">
-									Confidence Levels
-								</h3>
-								<ProbabilityChart probabilities={probabilities} />
-							</div>
-						</div>
-					) : (
-						<div className="h-[280px] flex items-center justify-center text-neutral-500">
-							Draw a digit to see the prediction
-						</div>
-					)}
-				</CardContent>
-			</Card>
-		</div>
-	);
+        <Card className="border-neutral-800 bg-neutral-900/60 backdrop-blur-sm lg:col-span-2">
+          <CardHeader className="px-4 py-4 border-b border-neutral-800 flex flex-row items-center justify-between">
+            <CardTitle className="text-xl font-semibold">
+              <div className="flex items-center">
+                <Sparkles className="h-5 w-5 mr-2 text-cyan-500" />
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600">
+                  AI Prediction
+                </span>
+              </div>
+            </CardTitle>
+            <div className="text-sm text-neutral-400">Model's classification result</div>
+          </CardHeader>
+          <CardContent className="p-4 pt-4">
+            {prediction !== null ? (
+              <div className="space-y-6">
+                <div className="flex items-center justify-center">
+                  <div className="text-8xl md:text-9xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600">
+                    {prediction}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium mb-3 text-neutral-300">Confidence Levels</h3>
+                  <ProbabilityChart probabilities={probabilities} />
+                </div>
+              </div>
+            ) : (
+              <div className="h-[280px] flex items-center justify-center text-neutral-500">
+                Draw a digit to see the prediction
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {prediction !== null && activations && (
+        <ActivationVisualizer activations={activations} onImageClick={handleActivationClick} />
+      )}
+
+      {/* Full-screen modal for zoomed image */}
+      {modalImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 modal-background">
+          <div className="fixed inset-0 flex flex-col">
+            <div className="flex items-center justify-between p-4 bg-neutral-900 border-b border-neutral-700">
+              <h3 className="text-lg font-medium text-white">{modalImage.title}</h3>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setZoomLevel(1)}
+                  className="h-8 w-8 border-neutral-700 bg-neutral-800 hover:bg-neutral-700"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setModalImage(null)}
+                  className="h-8 w-8 border-neutral-700 bg-neutral-800 hover:bg-red-900/50"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto flex items-center justify-center p-4">
+              <div
+                className="relative transition-all duration-200 ease-in-out"
+                style={{
+                  width: `${Math.min(100, 20 * zoomLevel)}%`,
+                  maxWidth: "100%",
+                  maxHeight: "100%",
+                }}
+              >
+                <img
+                  src={modalImage.src || "/placeholder.svg"}
+                  alt={modalImage.title}
+                  className="w-full h-auto object-contain border border-neutral-700 rounded-lg"
+                />
+              </div>
+            </div>
+
+            <div className="p-4 bg-neutral-900 border-t border-neutral-700">
+              <div className="flex items-center gap-4 max-w-3xl mx-auto">
+                <Minimize2 className="h-5 w-5 text-neutral-400" />
+                <Slider
+                  value={[zoomLevel]}
+                  min={0.5}
+                  max={5}
+                  step={0.1}
+                  onValueChange={(value) => setZoomLevel(value[0])}
+                  className="flex-1"
+                />
+                <Maximize2 className="h-5 w-5 text-neutral-400" />
+                <span className="text-sm text-neutral-400 w-16 text-right">{Math.round(zoomLevel * 100)}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
+
