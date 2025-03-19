@@ -305,6 +305,7 @@ export function visualizeFeatureMaps(
     wrapper.style.display = "flex"
     wrapper.style.flexDirection = "column"
     wrapper.style.alignItems = "center"
+    wrapper.style.justifyContent = "center"
     wrapper.style.width = "100%"
     wrapper.appendChild(canvas)
     wrapper.appendChild(label)

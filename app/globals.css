@@ -164,3 +164,10 @@ body {
   overflow-x: hidden;
 }
 
+
+.pixelated {
+  image-rendering: pixelated; /* Chrome, Safari */
+  image-rendering: crisp-edges; /* Firefox */
+  image-rendering: -webkit-optimize-contrast; /* Webkit */
+  -ms-interpolation-mode: nearest-neighbor; /* IE */
+}

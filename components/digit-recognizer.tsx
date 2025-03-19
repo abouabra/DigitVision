@@ -1,13 +1,12 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Trash2, Sparkles, PenLine, X, Maximize2, Minimize2 } from "lucide-react"
+import { Trash2, Sparkles, PenLine, X, Maximize2, Minimize2, ChevronLeft, ChevronRight } from "lucide-react"
 import ProbabilityChart from "@/components/probability-chart"
-import { initOnnxSession, predictDigit } from "@/app/predict"
+import { initOnnxSession, predictDigit, visualizeActivation } from "@/app/predict"
 import ActivationVisualizer from "@/components/activation-visualizer"
 import { Slider } from "@/components/ui/slider"
 
@@ -20,7 +19,14 @@ export default function DigitRecognizer() {
   const [isAnalysing, setIsAnalysing] = useState(true)
   const [hasDrawn, setHasDrawn] = useState(false)
   const [activations, setActivations] = useState<Record<string, { data: Float32Array; dims: number[] }> | null>(null)
-  const [modalImage, setModalImage] = useState<{ src: string; title: string } | null>(null)
+  // Update the modal state to include channel index and layer information
+  const [modalImage, setModalImage] = useState<{
+    src: string
+    title: string
+    channelIndex: number
+    layerName: string | null
+    totalChannels: number
+  } | null>(null)
   const [zoomLevel, setZoomLevel] = useState(1)
 
   // Initialize canvas
@@ -182,10 +188,53 @@ export default function DigitRecognizer() {
     }
   }
 
-  // Event handler for activation images
-  const handleActivationClick = (src: string, title: string) => {
-    setModalImage({ src, title })
+  // Update the handleActivationClick function to accept more parameters
+  const handleActivationClick = (
+    src: string,
+    title: string,
+    channelIndex: number,
+    layerName: string,
+    totalChannels: number,
+  ) => {
+    setModalImage({
+      src,
+      title,
+      channelIndex,
+      layerName,
+      totalChannels,
+    })
     setZoomLevel(1) // Reset zoom level
+  }
+
+  // Add a function to navigate between channels in the modal
+  const navigateModalChannel = (direction: "prev" | "next") => {
+    if (!modalImage || !activations || !modalImage.layerName) return
+
+    const { channelIndex, layerName, totalChannels } = modalImage
+    let newIndex: number
+
+    if (direction === "prev") {
+      newIndex = channelIndex === 0 ? totalChannels - 1 : channelIndex - 1
+    } else {
+      newIndex = channelIndex === totalChannels - 1 ? 0 : channelIndex + 1
+    }
+
+    // Get the activation data for the layer
+    const layerData = activations[layerName]
+    if (!layerData) return
+
+    // Create a temporary canvas to generate the new image
+    const tempCanvas = document.createElement("canvas")
+    visualizeActivation(layerData, tempCanvas, newIndex)
+    const newSrc = tempCanvas.toDataURL("image/png")
+
+    // Update the modal with the new image
+    setModalImage({
+      ...modalImage,
+      src: newSrc,
+      channelIndex: newIndex,
+      title: `${layerName.replace(/_/g, " ")} - Channel ${newIndex}`,
+    })
   }
 
   return (
@@ -236,7 +285,7 @@ export default function DigitRecognizer() {
                 variant="outline"
                 size="lg"
                 onClick={clearCanvas}
-                className="border-neutral-700 bg-neutral-800 hover:bg-red-900/70 text-neutral-200 cursor-pointer transition-colors duration-200"
+                className="border-neutral-700 bg-neutral-800 hover:bg-red-500/70 text-neutral-200 cursor-pointer transition-colors duration-200"
                 aria-label="Clear canvas"
               >
                 <Trash2 className="h-5 w-5 mr-2" />
@@ -289,7 +338,9 @@ export default function DigitRecognizer() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 modal-background">
           <div className="fixed inset-0 flex flex-col">
             <div className="flex items-center justify-between p-4 bg-neutral-900 border-b border-neutral-700">
-              <h3 className="text-lg font-medium text-white">{modalImage.title}</h3>
+              <div className="flex items-center">
+                <h3 className="text-lg font-medium text-white">{modalImage?.title}</h3>
+              </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -310,7 +361,19 @@ export default function DigitRecognizer() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-auto flex items-center justify-center p-4">
+            <div className="flex-1 overflow-auto flex items-center justify-center p-4 relative">
+              {/* Left navigation button */}
+              {modalImage && modalImage.totalChannels > 1 && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => navigateModalChannel("prev")}
+                  className="absolute left-6 top-1/2 transform -translate-y-1/2 h-12 w-12 rounded-full border-neutral-700 bg-neutral-800/80 hover:bg-neutral-700 z-10"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </Button>
+              )}
+
               <div
                 className="relative transition-all duration-200 ease-in-out"
                 style={{
@@ -320,11 +383,23 @@ export default function DigitRecognizer() {
                 }}
               >
                 <img
-                  src={modalImage.src || "/placeholder.svg"}
-                  alt={modalImage.title}
-                  className="w-full h-auto object-contain border border-neutral-700 rounded-lg"
+                  src={modalImage?.src || "/placeholder.svg"}
+                  alt={modalImage?.title || ""}
+                  className="w-full h-auto object-contain border border-neutral-700 rounded-lg pixelated"
                 />
               </div>
+
+              {/* Right navigation button */}
+              {modalImage && modalImage.totalChannels > 1 && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => navigateModalChannel("next")}
+                  className="absolute right-6 top-1/2 transform -translate-y-1/2 h-12 w-12 rounded-full border-neutral-700 bg-neutral-800/80 hover:bg-neutral-700 z-10"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </Button>
+              )}
             </div>
 
             <div className="p-4 bg-neutral-900 border-t border-neutral-700">

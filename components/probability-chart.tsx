@@ -33,10 +33,7 @@ export default function ProbabilityChart({ probabilities }: ProbabilityChartProp
           <div className="col-span-9">
             <Progress
               value={percentage}
-              className={cn(
-                "h-2 bg-neutral-800",
-                percentage === maxProb ? "bg-gradient-to-r from-cyan-500 to-purple-600" : "",
-              )}
+              className={"h-2 bg-neutral-800"}
               indicatorClassName={cn(
                 percentage === maxProb ? "bg-gradient-to-r from-cyan-500 to-purple-600" : "bg-neutral-500",
               )}

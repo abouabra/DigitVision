@@ -8,45 +8,42 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Brain } from "lucide-react"
 
-// Layer descriptions for tooltips - corrected numbers
+// Update the LAYER_DESCRIPTIONS to match the new architecture
 const LAYER_DESCRIPTIONS: Record<string, string> = {
-  conv1: "First convolutional layer (6 filters, 5x5)",
-  conv1_bn: "Batch normalization after first conv layer",
+  conv1: "First convolutional layer (16 filters, 3x3)",
   conv1_act: "ReLU activation after first conv layer",
   conv1_pool: "Max pooling after first conv (2x2)",
-  conv2: "Second convolutional layer (16 filters, 5x5)",
-  conv2_bn: "Batch normalization after second conv layer",
+  conv2: "Second convolutional layer (32 filters, 3x3)",
   conv2_act: "ReLU activation after second conv layer",
   conv2_pool: "Max pooling after second conv (2x2)",
-  conv3: "Third convolutional layer (120 filters, 5x5)",
-  conv3_bn: "Batch normalization after third conv layer",
+  conv3: "Third convolutional layer (64 filters, 3x3)",
   conv3_act: "ReLU activation after third conv layer",
-  features_flat: "Flattened features before classification",
 }
 
-// Layer groups for better organization
+// Update the LAYER_GROUPS to be more accurate and remove batch normalization tabs
 const LAYER_GROUPS = [
   {
-    name: "Input Processing",
-    layers: ["conv1", "conv1_bn", "conv1_act", "conv1_pool"],
+    name: "Convolution Layer 1",
+    layers: ["conv1", "conv1_act", "conv1_pool"],
   },
   {
-    name: "Feature Extraction",
-    layers: ["conv2", "conv2_bn", "conv2_act", "conv2_pool"],
+    name: "Convolution Layer 2",
+    layers: ["conv2", "conv2_act", "conv2_pool"],
   },
   {
-    name: "High-Level Features",
-    layers: ["conv3", "conv3_bn", "conv3_act", "features_flat"],
+    name: "Convolution Layer 3",
+    layers: ["conv3", "conv3_act"],
   },
 ]
 
+// Update the onImageClick prop type to include the additional parameters
 interface ActivationVisualizerProps {
   activations: Record<string, { data: Float32Array; dims: number[] }>
-  onImageClick?: (src: string, title: string) => void
+  onImageClick?: (src: string, title: string, channelIndex: number, layerName: string, totalChannels: number) => void
 }
 
 export default function ActivationVisualizer({ activations, onImageClick }: ActivationVisualizerProps) {
-  const [activeTab, setActiveTab] = useState("Input Processing")
+  const [activeTab, setActiveTab] = useState("Convolution Layer 1")
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -82,11 +79,19 @@ export default function ActivationVisualizer({ activations, onImageClick }: Acti
       canvas.classList.add("hover:ring-cyan-500/50")
       canvas.classList.add("transition-all")
 
-      // Add click event to show modal
+      // Update the click event handler to pass more information
+      // In the useEffect where we add click events to canvases:
       canvas.addEventListener("click", () => {
         const dataUrl = canvas.toDataURL("image/png")
-        if (onImageClick) {
-          onImageClick(dataUrl, `${selectedLayer?.replace(/_/g, " ")} - Channel ${index}`)
+        if (onImageClick && selectedLayer) {
+          const { channels } = getActivationDimensions(activations[selectedLayer])
+          onImageClick(
+            dataUrl,
+            `${selectedLayer.replace(/_/g, " ")} - Channel ${index}`,
+            index,
+            selectedLayer,
+            channels,
+          )
         }
       })
     })
@@ -115,7 +120,7 @@ export default function ActivationVisualizer({ activations, onImageClick }: Acti
     const currentIndex = allLayers.indexOf(selectedLayer)
     if (currentIndex === -1) return
 
-    let newIndex: number;
+    let newIndex: number
     if (direction === "prev") {
       newIndex = currentIndex === 0 ? allLayers.length - 1 : currentIndex - 1
     } else {
@@ -168,11 +173,11 @@ export default function ActivationVisualizer({ activations, onImageClick }: Acti
 
           {LAYER_GROUPS.map((group) => (
             <TabsContent key={group.name} value={group.name} className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+              <div className="flex w-full gap-3 mb-4">
                 {group.layers.map((layer) => (
                   <button
                     key={layer}
-                    className={`p-2 rounded-md text-sm text-left transition-colors ${
+                    className={`p-2 rounded-md  w-full  text-sm text-left transition-colors ${
                       selectedLayer === layer
                         ? "bg-gradient-to-r from-cyan-500/20 to-purple-600/20 border border-cyan-500/40 text-white"
                         : "bg-neutral-800 border border-neutral-700 text-neutral-300 hover:bg-neutral-700"
