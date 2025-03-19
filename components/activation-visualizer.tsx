@@ -159,12 +159,12 @@ export default function ActivationVisualizer({ activations, onImageClick }: Acti
 
       <CardContent className="p-4 pt-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-1 h-14 mb-4">
+          <TabsList className="w-full flex flex-wrap h-full bg-neutral-800 border border-neutral-700 rounded-lg p-1 min-h-14 mb-4">
             {LAYER_GROUPS.map((group) => (
               <TabsTrigger
                 key={group.name}
                 value={group.name}
-                className="flex-1 h-full text-base font-medium rounded-md transition-all data-[state=active]:bg-neutral-700 data-[state=active]:text-white data-[state=inactive]:text-neutral-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-neutral-700/30"
+                className="flex-1 flex p-3 h-full text-base font-medium rounded-md transition-all data-[state=active]:bg-neutral-700 data-[state=active]:text-white data-[state=inactive]:text-neutral-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-neutral-700/30"
               >
                 {group.name}
               </TabsTrigger>
@@ -177,7 +177,7 @@ export default function ActivationVisualizer({ activations, onImageClick }: Acti
                 {group.layers.map((layer) => (
                   <button
                     key={layer}
-                    className={`p-2 rounded-md  w-full  text-sm text-left transition-colors ${
+                    className={`p-2 w-full rounded-md text-sm text-left transition-colors ${
                       selectedLayer === layer
                         ? "bg-gradient-to-r from-cyan-500/20 to-purple-600/20 border border-cyan-500/40 text-white"
                         : "bg-neutral-800 border border-neutral-700 text-neutral-300 hover:bg-neutral-700"
