@@ -1,6 +1,6 @@
 "use client"
+// @ts-expect-error - no types available
 import * as onnx from "onnxruntime-web"
-
 // Global session to avoid reloading the model
 let session: onnx.InferenceSession | null = null
 
@@ -23,7 +23,6 @@ const ACTIVATION_LAYERS = [
 export async function initOnnxSession(modelUrl = "/model.onnx"): Promise<boolean> {
   if (!session) {
     try {
-      console.log("Initializing ONNX session...")
 
       // Create session with proper options for web environment
       const options: onnx.InferenceSession.SessionOptions = {
@@ -33,10 +32,6 @@ export async function initOnnxSession(modelUrl = "/model.onnx"): Promise<boolean
 
       session = await onnx.InferenceSession.create(modelUrl, options)
       console.log("ONNX session initialized successfully")
-
-      // Log input and output names for debugging
-      console.log("Input names:", session.inputNames)
-      console.log("Output names:", session.outputNames)
 
       return true
     } catch (error) {
@@ -117,9 +112,7 @@ export async function predictDigit(canvas: HTMLCanvasElement): Promise<Predictio
       input: inputTensor,
     }
 
-    console.log("Running inference...")
     const results = await session.run(feeds)
-    console.log("Inference complete")
 
     // Extract prediction results (logits) from the 'output' tensor
     if (!results.output) {
@@ -137,7 +130,7 @@ export async function predictDigit(canvas: HTMLCanvasElement): Promise<Predictio
       if (results[layerName]) {
         activations[layerName] = {
           data: results[layerName].data as Float32Array,
-          dims: results[layerName].dims,
+          dims: results[layerName].dims as number[],
         }
       }
     }
@@ -167,7 +160,7 @@ export function visualizeActivation(
 
   // For convolutional layers: [batch, channels, height, width]
   if (dims.length === 4) {
-    const [_, channels, height, width] = dims
+    const [, channels, height, width] = dims
 
     // Ensure valid channel index
     if (channelIndex >= channels) {
@@ -212,7 +205,7 @@ export function visualizeActivation(
   }
   // For flat features: [batch, features]
   else if (dims.length === 2) {
-    const [_, features] = dims
+    const [, features] = dims
     const featureData = activationTensor.data
 
     // Find min/max for normalization
@@ -258,11 +251,11 @@ export function getActivationDimensions(activationTensor: {
 
   if (dims.length === 4) {
     // [batch, channels, height, width]
-    const [_, channels, height, width] = dims
+    const [, channels, height, width] = dims
     return { width, height, channels }
   } else if (dims.length === 2) {
     // Flatten features [batch, features]
-    const [_, features] = dims
+    const [, features] = dims
     return { width: features, height: 1, channels: 1 }
   }
 
@@ -275,7 +268,7 @@ export function visualizeFeatureMaps(
   containerElement: HTMLElement,
   maxChannels = 16,
 ): void {
-  const { width, height, channels } = getActivationDimensions(activationTensor)
+  const { channels } = getActivationDimensions(activationTensor)
 
   // Clear container
   containerElement.innerHTML = ""

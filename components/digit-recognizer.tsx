@@ -31,13 +31,17 @@ export default function DigitRecognizer() {
 
   // Initialize canvas
   useEffect(() => {
+    if(isLoading)
+      clearCanvas();
+
+
     if (canvasRef.current) {
       const canvas = canvasRef.current
       const ctx = canvas.getContext("2d")
       if (ctx) {
-        // Set black background
-        ctx.fillStyle = "#000"
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        // // Set black background
+        // ctx.fillStyle = "#D1D1D1"
+        // ctx.fillRect(0, 0, canvas.width, canvas.height)
 
         // Set white drawing
         ctx.lineWidth = 15
@@ -237,6 +241,7 @@ export default function DigitRecognizer() {
     })
   }
 
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -262,6 +267,7 @@ export default function DigitRecognizer() {
                 onMouseDown={startDrawing}
                 onMouseMove={draw}
                 onMouseUp={endDrawing}
+                onMouseLeave={endDrawing}
                 onTouchStart={startDrawing}
                 onTouchMove={draw}
                 onTouchEnd={endDrawing}
@@ -305,7 +311,7 @@ export default function DigitRecognizer() {
                 </span>
               </div>
             </CardTitle>
-            <div className="text-sm text-neutral-400">Model's classification result</div>
+            <div className="text-sm text-neutral-400">Model&apos;s classification result</div>
           </CardHeader>
           <CardContent className="p-4 pt-4">
             {prediction !== null ? (
