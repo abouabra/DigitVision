@@ -145,7 +145,7 @@ export default function ActivationVisualizer({ activations, onImageClick }: Acti
 
   return (
     <Card className="border-neutral-800 bg-neutral-900/60 backdrop-blur-sm">
-      <CardHeader className="px-4 py-4 border-b border-neutral-800 flex flex-row items-center justify-between">
+      <CardHeader className="px-4border-b border-neutral-800 flex flex-row items-center justify-between">
         <CardTitle className="text-xl font-semibold">
           <div className="flex items-center">
             <Brain className="h-5 w-5 mr-2 text-cyan-500" />

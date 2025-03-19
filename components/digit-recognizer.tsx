@@ -241,7 +241,7 @@ export default function DigitRecognizer() {
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <Card className="overflow-hidden border-neutral-800 bg-neutral-900/60 backdrop-blur-sm lg:col-span-3">
-          <CardHeader className="px-4 py-4 border-b border-neutral-800 flex flex-row items-center justify-between">
+          <CardHeader className="px-4 border-b border-neutral-800 flex flex-row items-center justify-between">
             <CardTitle className="text-xl font-semibold">
               <div className="flex items-center">
                 <PenLine className="h-5 w-5 mr-2 text-cyan-500" />
@@ -296,7 +296,7 @@ export default function DigitRecognizer() {
         </Card>
 
         <Card className="border-neutral-800 bg-neutral-900/60 backdrop-blur-sm lg:col-span-2">
-          <CardHeader className="px-4 py-4 border-b border-neutral-800 flex flex-row items-center justify-between">
+          <CardHeader className="px-4 border-b border-neutral-800 flex flex-row items-center justify-between">
             <CardTitle className="text-xl font-semibold">
               <div className="flex items-center">
                 <Sparkles className="h-5 w-5 mr-2 text-cyan-500" />
