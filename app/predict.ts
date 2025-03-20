@@ -7,17 +7,13 @@ let session: onnx.InferenceSession | null = null
 // Layer names for activations - must match the export names in Python
 const ACTIVATION_LAYERS = [
   "conv1",
-  "conv1_bn",
   "conv1_act",
   "conv1_pool",
   "conv2",
-  "conv2_bn",
   "conv2_act",
   "conv2_pool",
   "conv3",
-  "conv3_bn",
   "conv3_act",
-  "features_flat",
 ]
 
 export async function initOnnxSession(modelUrl = "/model.onnx"): Promise<boolean> {
