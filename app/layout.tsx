@@ -7,8 +7,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Neural Digit Scanner - AI Digit Recognition",
-  description: "Draw a digit and watch our AI instantly recognize it with precision",
+  title: "Digit Recognition - Digit Vision",
+  description: "Interactive Neural Network Digit Recognition and Visualization",
 }
 
 export default function RootLayout({

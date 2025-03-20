@@ -149,7 +149,7 @@ export default function ActivationVisualizer({ activations, onImageClick }: Acti
         <CardTitle className="text-xl font-semibold">
           <div className="flex items-center">
             <Brain className="h-5 w-5 mr-2 text-cyan-500" />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600 ">
               Neural Network Activations
             </span>
           </div>

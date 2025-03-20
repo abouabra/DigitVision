@@ -171,3 +171,25 @@ body {
   image-rendering: -webkit-optimize-contrast; /* Webkit */
   -ms-interpolation-mode: nearest-neighbor; /* IE */
 }
+
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient {
+  background: linear-gradient(270deg, #06B6D4, #9333EA, #06B6D4);
+  background-size: 200% 200%;
+  animation: gradient 2s ease infinite;
+  background-clip: text;
+  color: transparent;
+
+}

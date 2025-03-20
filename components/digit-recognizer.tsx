@@ -250,7 +250,7 @@ export default function DigitRecognizer() {
             <CardTitle className="text-xl font-semibold">
               <div className="flex items-center">
                 <PenLine className="h-5 w-5 mr-2 text-cyan-500" />
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600 animate-gradient">
                   Draw a Digit
                 </span>
               </div>
@@ -306,7 +306,7 @@ export default function DigitRecognizer() {
             <CardTitle className="text-xl font-semibold">
               <div className="flex items-center">
                 <Sparkles className="h-5 w-5 mr-2 text-cyan-500" />
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600 animate-gradient">
                   AI Prediction
                 </span>
               </div>
@@ -317,7 +317,7 @@ export default function DigitRecognizer() {
             {prediction !== null ? (
               <div className="space-y-6">
                 <div className="flex items-center justify-center">
-                  <div className="text-8xl md:text-9xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600">
+                  <div className="text-8xl md:text-9xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600 animate-gradient">
                     {prediction}
                   </div>
                 </div>
