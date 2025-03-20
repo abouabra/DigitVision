@@ -39,11 +39,8 @@ export default function DigitRecognizer() {
       const canvas = canvasRef.current
       const ctx = canvas.getContext("2d")
       if (ctx) {
-        // // Set black background
-        // ctx.fillStyle = "#D1D1D1"
-        // ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-        // Set white drawing
+        // Set black background
         ctx.lineWidth = 15
         ctx.lineCap = "round"
         ctx.lineJoin = "round"
@@ -250,7 +247,7 @@ export default function DigitRecognizer() {
             <CardTitle className="text-xl font-semibold">
               <div className="flex items-center">
                 <PenLine className="h-5 w-5 mr-2 text-cyan-500" />
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600 animate-gradient">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600">
                   Draw a Digit
                 </span>
               </div>
@@ -306,7 +303,7 @@ export default function DigitRecognizer() {
             <CardTitle className="text-xl font-semibold">
               <div className="flex items-center">
                 <Sparkles className="h-5 w-5 mr-2 text-cyan-500" />
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600 animate-gradient">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600">
                   AI Prediction
                 </span>
               </div>
@@ -317,7 +314,7 @@ export default function DigitRecognizer() {
             {prediction !== null ? (
               <div className="space-y-6">
                 <div className="flex items-center justify-center">
-                  <div className="text-8xl md:text-9xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600 animate-gradient">
+                  <div className="text-8xl md:text-9xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-purple-600">
                     {prediction}
                   </div>
                 </div>
