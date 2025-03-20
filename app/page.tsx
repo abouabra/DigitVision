@@ -1,4 +1,5 @@
 import DigitRecognizer from "@/components/digit-recognizer";
+import Footer from "@/components/footer";
 
 export default function Home() {
 	return (
@@ -17,6 +18,7 @@ export default function Home() {
 					<DigitRecognizer />
 				</div>
 			</main>
+			<Footer />
 		</div>
 	);
 }
