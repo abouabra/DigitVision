@@ -1,15 +1,12 @@
 "use client";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { useState, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { CirclePauseIcon, Rotate3DIcon, InfoIcon } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
+
 
 type Point = {
     x: number;
@@ -83,7 +80,7 @@ function PointCloud({ points }: { points: Point[] }) {
 
 // Fixed Controls component that properly handles rotation toggle
 function Controls({ autoRotate }: { autoRotate: boolean }) {
-    const controlsRef = useRef<any>(null);
+    const controlsRef = useRef<OrbitControlsImpl | null>(null);
     
     // Apply auto-rotation setting whenever it changes
     useEffect(() => {
@@ -135,7 +132,7 @@ export default function Tsne3D() {
 
         // Get subset of points for each label
         const result: Point[] = [];
-        Object.entries(labelGroups).forEach(([label, points]) => {
+        Object.entries(labelGroups).forEach(([, points]) => {
             const selectedPoints =
                 points.length <= pointsPerLabel
                     ? points
