@@ -29,9 +29,20 @@ const COLORS = [
     "#8E8E93", // Gray
 ];
 
-function PointCloud({ points }: { points: Point[] }) {
+// Neutral color for non-highlighted points
+const NEUTRAL_COLOR = "#000"; //#888888
+
+function PointCloud({ 
+    points, 
+    highlightedLabel 
+}: { 
+    points: Point[],
+    highlightedLabel: number | null 
+}) {
     // Create geometry
     const geometry = useRef<THREE.BufferGeometry>(new THREE.BufferGeometry());
+    const colorAttributeRef = useRef<THREE.BufferAttribute | null>(null);
+    const originalColors = useRef<Float32Array | null>(null);
 
     useEffect(() => {
         if (!points.length) return;
@@ -54,16 +65,46 @@ function PointCloud({ points }: { points: Point[] }) {
             colors[i * 3 + 2] = colorObj.b;
         });
 
+        // Store original colors for later use
+        originalColors.current = colors.slice();
+
+        // Set attributes
         geometry.current.setAttribute(
             "position",
             new THREE.BufferAttribute(positions, 3)
         );
-        geometry.current.setAttribute(
-            "color",
-            new THREE.BufferAttribute(colors, 3)
-        );
+        
+        const colorAttribute = new THREE.BufferAttribute(colors, 3);
+        geometry.current.setAttribute("color", colorAttribute);
+        colorAttributeRef.current = colorAttribute;
+        
         geometry.current.computeBoundingSphere();
     }, [points]);
+
+    // Update colors when highlighted label changes
+    useEffect(() => {
+        if (!points.length || colorAttributeRef.current === null || originalColors.current === null) return;
+        
+        const colorObj = new THREE.Color();
+        const colors = originalColors.current.slice();
+        
+        // If we have a highlighted label, adjust colors
+        if (highlightedLabel !== null) {
+            points.forEach((point, i) => {
+                // If the point doesn't match the highlighted label, make it neutral
+                if (point.label !== highlightedLabel) {
+                    colorObj.set(NEUTRAL_COLOR);
+                    colors[i * 3] = colorObj.r;
+                    colors[i * 3 + 1] = colorObj.g;
+                    colors[i * 3 + 2] = colorObj.b;
+                }
+            });
+        }
+        
+        // Update the color attribute
+        colorAttributeRef.current.array = colors;
+        colorAttributeRef.current.needsUpdate = true;
+    }, [highlightedLabel, points]);
 
     return (
         <points geometry={geometry.current}>
@@ -111,6 +152,7 @@ export default function Tsne3D() {
     const [processedData, setProcessedData] = useState<Point[]>([]);
     const [autoRotate, setAutoRotate] = useState(true);
     const [uniqueLabels, setUniqueLabels] = useState<number[]>([]);
+    const [highlightedLabel, setHighlightedLabel] = useState<number | null>(null);
 
     // Process the data to limit points per label
     useEffect(() => {
@@ -155,7 +197,12 @@ export default function Tsne3D() {
                 <PerspectiveCamera makeDefault position={[0, 0, 50]} fov={50} />
                 <ambientLight intensity={0.5} />
                 <pointLight position={[10, 10, 10]} intensity={1.5} />
-                {processedData.length > 0 && <PointCloud points={processedData} />}
+                {processedData.length > 0 && (
+                    <PointCloud 
+                        points={processedData} 
+                        highlightedLabel={highlightedLabel} 
+                    />
+                )}
                 <Controls autoRotate={autoRotate} />
             </Canvas>
             
@@ -170,7 +217,8 @@ export default function Tsne3D() {
                         <div className="space-y-3">
                             <h3 className="font-bold text-lg">3D t-SNE Brain Visualization</h3>
                             <p>
-                                This 3D visualization uses t-SNE to simplify complex features from the convolutional layer of my MNIST CNN. Each colored dot represents a pattern, and dots with the same color are grouped together because they represent the same digit.                            </p>
+                                This 3D visualization uses t-SNE to simplify complex features from the convolutional layer of my MNIST CNN. Each colored dot represents a pattern, and dots with the same color are grouped together because they represent the same digit.
+                            </p>
                             <div className="pt-2">
                                 <h4 className="font-medium mb-2">Controls:</h4>
                                 <ul className="space-y-1 text-sm">
@@ -182,7 +230,7 @@ export default function Tsne3D() {
                             </div>
                             <div className="pt-2">
                                 <h4 className="font-medium mb-2">Color Legend:</h4>
-                                <p className="text-sm">The colored dots at the bottom left show which label corresponds to each color.</p>
+                                <p className="text-sm">The colored dots at the bottom left show which label corresponds to each color. Hover over a digit to highlight only those points in the visualization.</p>
                             </div>
                         </div>
                     </TooltipContent>
@@ -204,17 +252,19 @@ export default function Tsne3D() {
                     </div>
                 )}
             </button>
+            
             <div className="absolute bottom-4 left-4 flex border border-neutral-800 bg-neutral-900/80 backdrop-blur-sm p-2 rounded-2xl items-center justify-center gap-3 shadow-lg">
                 {uniqueLabels.map((label, i) => (
                     <div
                         key={i}
                         className="w-5 h-5 rounded-full flex items-center justify-center cursor-pointer hover:scale-150 transition-transform"
-                        style={{ backgroundColor: COLORS[label % COLORS.length] }}>
+                        style={{ backgroundColor: COLORS[label % COLORS.length] }}
+                        onMouseEnter={() => setHighlightedLabel(label)}
+                        onMouseLeave={() => setHighlightedLabel(null)}>
                         <span className="text-xs text-white font-bold">{label}</span>
                     </div>
                 ))}
             </div>
-            
         </div>
     );
 }
