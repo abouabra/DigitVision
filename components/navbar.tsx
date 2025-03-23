@@ -1,6 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
-import { BrainIcon, BrushIcon, InfoIcon } from "lucide-react";
+import { BrainIcon, BrushIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -9,8 +9,7 @@ const NavBar = () => {
 
   const navItems = [
     { name: "Draw", href: "/", icon: BrushIcon },
-    { name: "3D Brain", href: "/visualization", icon: BrainIcon },
-    { name: "Info", href: "/info", icon: InfoIcon },
+    { name: "3D Visualization", href: "/visualization", icon: BrainIcon },
   ];
 
   return (
