@@ -1,6 +1,8 @@
 # Digit Vision
 Interactive Neural Network Digit Recognition and Visualization
 
+[![Video Title](https://i3.ytimg.com/vi/RiUD3UN9MNQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=RiUD3UN9MNQ)
+
 ## 📝 Overview
 Digit Vision is my interactive project that demonstrates how neural networks recognize handwritten digits. I built this to visualize the inner workings of convolutional neural networks and provide an educational tool for understanding machine learning concepts. Users can draw digits and see in real-time how each layer of the neural network processes the input, making complex AI concepts more accessible and intuitive.
 
