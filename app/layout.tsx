@@ -8,7 +8,7 @@ import NavBar from "@/components/navbar";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-	title: "Digit Recognition - Digit Vision",
+	title: "Digit Vision",
 	description: "Interactive Neural Network Digit Recognition and Visualization",
 };
 
